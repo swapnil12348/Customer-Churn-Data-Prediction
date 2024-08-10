@@ -1,4 +1,4 @@
-# Telco Customer Churn Prediction
+#  Customer Churn Prediction
 
 ## Project Description
 This project is focused on building a machine learning model to predict customer churn for a telecommunications company. The key components of the project include:
