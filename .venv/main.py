@@ -229,7 +229,15 @@ def individual_churn_prediction(model, X):
 
         # Predict churn probability
         prediction_probs = model.predict_proba(input_data)
-        no_churn_prob, churn_prob = prediction_probs[0]
+        if prediction_probs[0].shape[0] == 2:
+    # If two probabilities are returned (normal case)
+            no_churn_prob, churn_prob = prediction_probs[0]
+        else:
+            # If only one probability is returned
+            # Assuming this is the probability of churning
+            churn_prob = prediction_probs[0][0]
+            no_churn_prob = 1.0 - churn_prob
+
 
 
         # Display results
