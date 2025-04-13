@@ -228,20 +228,39 @@ def individual_churn_prediction(model, X):
             input_data[col] = pd.to_numeric(input_data[col], errors='coerce')
 
         # Predict churn probability
-        churn_prob = model.predict_proba(input_data)
-        no_churn_prob, churn_prob = churn_prob[0]
+        try:
+            probabilities = model.predict_proba(input_data)
+            
+            # Get the probability for each class (more robust approach)
+            if hasattr(model, 'classes_') and len(model.classes_) == 2:
+                # Binary classification (handle class order correctly)
+                churn_index = np.where(model.classes_ == 1)[0][0] if 1 in model.classes_ else 1
+                no_churn_index = np.where(model.classes_ == 0)[0][0] if 0 in model.classes_ else 0
+                
+                churn_prob = probabilities[0][churn_index]
+                no_churn_prob = probabilities[0][no_churn_index]
+            else:
+                # If model structure is unexpected, use index-based approach as fallback
+                if probabilities[0].size > 1:
+                    no_churn_prob, churn_prob = probabilities[0]
+                else:
+                    churn_prob = probabilities[0][0]
+                    no_churn_prob = 1 - churn_prob
+                    
+            # Display results
+            st.subheader("Prediction Results")
+            st.metric("Probability of Churning", f"{churn_prob * 100:.2f}%")
+            st.metric("Probability of Staying", f"{no_churn_prob * 100:.2f}%")
 
-        # Display results
-        st.subheader("Prediction Results")
-        st.metric("Probability of Churning", f"{churn_prob * 100:.2f}%")
-        st.metric("Probability of Staying", f"{no_churn_prob * 100:.2f}%")
-
-        # Interpret the results
-        if churn_prob > 0.5:
-            st.warning("High risk of customer churn! Recommend retention strategies.")
-        else:
-            st.success("Low risk of customer churn. Customer seems satisfied.")
-
+            # Interpret the results
+            if churn_prob > 0.5:
+                st.warning("High risk of customer churn! Recommend retention strategies.")
+            else:
+                st.success("Low risk of customer churn. Customer seems satisfied.")
+                
+        except Exception as e:
+            st.error(f"Error during prediction: {e}")
+            st.info("This might be due to a mismatch between the expected model input format and the preprocessed data. Try retraining the model or checking feature alignment.")
 
 def main():
     st.title("🚀 Customer Churn Prediction Dashboard")
