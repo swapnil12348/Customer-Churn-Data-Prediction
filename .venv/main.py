@@ -228,8 +228,9 @@ def individual_churn_prediction(model, X):
             input_data[col] = pd.to_numeric(input_data[col], errors='coerce')
 
         # Predict churn probability
-        churn_prob = model.predict_proba(input_data)
-        no_churn_prob, churn_prob = churn_prob[0]
+        prediction_probs = model.predict_proba(input_data)
+        no_churn_prob, churn_prob = prediction_probs[0]
+
 
         # Display results
         st.subheader("Prediction Results")
