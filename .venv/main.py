@@ -228,40 +228,8 @@ def individual_churn_prediction(model, X):
             input_data[col] = pd.to_numeric(input_data[col], errors='coerce')
 
         # Predict churn probability
-        prediction_probs = model.predict_proba(input_data)
-        st.write("Debug Info:")
-        st.write(f"Type of prediction_probs: {type(prediction_probs)}")
-        st.write(f"Shape of prediction_probs: {prediction_probs.shape}")
-        
-        # Handle prediction probabilities safely
-        try:
-            # If prediction_probs is a 2D array with shape (1, 2)
-            if prediction_probs.shape == (1, 2):
-                no_churn_prob = prediction_probs[0, 0]
-                churn_prob = prediction_probs[0, 1]
-            # If it's a nested list or some other structure
-            else:
-                # Try to extract the probabilities based on the structure
-                probs = prediction_probs[0]
-                if len(probs) == 2:
-                    no_churn_prob, churn_prob = probs
-                else:
-                    # If only one probability is available, assume it's for churning
-                    churn_prob = probs[0]
-                    no_churn_prob = 1.0 - churn_prob
-        except Exception as e:
-            # If all else fails, capture the error and display it
-            st.error(f"Error processing prediction probabilities: {e}")
-            # Try to show what we got from the model
-            st.write("Raw prediction probabilities:", prediction_probs)
-            # Set default values to avoid further errors
-            churn_prob = 0.5
-            no_churn_prob = 0.5
-                
-                
-        
-        
-
+        churn_prob = model.predict_proba(input_data)
+        no_churn_prob, churn_prob = churn_prob[0]
 
         # Display results
         st.subheader("Prediction Results")
