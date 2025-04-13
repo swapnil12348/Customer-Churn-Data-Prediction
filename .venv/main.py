@@ -213,55 +213,84 @@ def individual_churn_prediction(model, X):
             'TotalCharges': [total_charges]
         })
 
-        # Use the preprocessing function from before
-        le = LabelEncoder()
-        categorical_cols = ['gender', 'Partner', 'Dependents', 'PhoneService', 'MultipleLines',
-                            'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection',
-                            'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract',
-                            'PaperlessBilling', 'PaymentMethod']
-
-        for col in categorical_cols:
-            input_data[col] = le.fit_transform(input_data[col])
-
-        # Ensure all columns are numeric
-        for col in input_data.columns:
-            input_data[col] = pd.to_numeric(input_data[col], errors='coerce')
-
-        # Predict churn probability
+        # Show the raw input data for debugging
+        st.subheader("Debug: Raw Input Data")
+        st.dataframe(input_data)
+        
+        # Use the same encoders that were used during training
+        # This is a critical part that might be causing the issue
         try:
+            # Categorical feature encoding - use the SAME encoding as during training
+            categorical_cols = ['gender', 'Partner', 'Dependents', 'PhoneService', 'MultipleLines',
+                              'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection',
+                              'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract',
+                              'PaperlessBilling', 'PaymentMethod']
+            
+            # Instead of fit_transform (which creates new mappings), we need to use the
+            # same mappings from training. Since we don't have access to them, let's use
+            # a more direct approach for binary yes/no features.
+            
+            # Map Yes/No features directly to 1/0
+            binary_cols = ['Partner', 'Dependents', 'PhoneService', 'OnlineSecurity', 
+                           'OnlineBackup', 'DeviceProtection', 'TechSupport', 
+                           'StreamingTV', 'StreamingMovies', 'PaperlessBilling']
+            
+            for col in binary_cols:
+                input_data[col] = input_data[col].map({'Yes': 1, 'No': 0})
+            
+            # Handle gender
+            input_data['gender'] = input_data['gender'].map({'Male': 0, 'Female': 1})
+            
+            # Handle MultipleLines (has three states)
+            input_data['MultipleLines'] = input_data['MultipleLines'].map({'No': 0, 'Yes': 1, 'No phone service': 2})
+            
+            # Handle InternetService
+            input_data['InternetService'] = input_data['InternetService'].map({'DSL': 0, 'Fiber optic': 1, 'No': 2})
+            
+            # Handle Contract
+            input_data['Contract'] = input_data['Contract'].map({'Month-to-month': 0, 'One year': 1, 'Two year': 2})
+            
+            # Handle PaymentMethod
+            payment_method_map = {
+                'Electronic check': 0, 
+                'Mailed check': 1, 
+                'Bank transfer (automatic)': 2, 
+                'Credit card (automatic)': 3
+            }
+            input_data['PaymentMethod'] = input_data['PaymentMethod'].map(payment_method_map)
+
+            # Show the processed input data for debugging
+            st.subheader("Debug: Processed Input Data")
+            st.dataframe(input_data)
+
+            # Predict churn probability
             probabilities = model.predict_proba(input_data)
             
-            # Get the probability for each class (more robust approach)
-            if hasattr(model, 'classes_') and len(model.classes_) == 2:
-                # Binary classification (handle class order correctly)
-                churn_index = np.where(model.classes_ == 1)[0][0] if 1 in model.classes_ else 1
-                no_churn_index = np.where(model.classes_ == 0)[0][0] if 0 in model.classes_ else 0
-                
-                churn_prob = probabilities[0][churn_index]
-                no_churn_prob = probabilities[0][no_churn_index]
-            else:
-                # If model structure is unexpected, use index-based approach as fallback
-                if probabilities[0].size > 1:
-                    no_churn_prob, churn_prob = probabilities[0]
-                else:
-                    churn_prob = probabilities[0][0]
-                    no_churn_prob = 1 - churn_prob
-                    
-            # Display results
+            # Debug: Show the raw probabilities
+            st.subheader("Debug: Raw Model Output")
+            st.write(f"Probability array: {probabilities[0]}")
+            st.write(f"Model classes: {model.classes_}")
+            
+            # Correctly interpret the probabilities based on model classes
+            class_0_prob = probabilities[0][0]  # Probability of class 0 (typically "No churn")
+            class_1_prob = probabilities[0][1] if len(probabilities[0]) > 1 else 1 - class_0_prob
+            
+            # Display results (swapped to ensure correct interpretation)
             st.subheader("Prediction Results")
-            st.metric("Probability of Churning", f"{churn_prob * 100:.2f}%")
-            st.metric("Probability of Staying", f"{no_churn_prob * 100:.2f}%")
+            st.metric("Probability of Churning", f"{class_1_prob * 100:.2f}%")
+            st.metric("Probability of Staying", f"{class_0_prob * 100:.2f}%")
 
             # Interpret the results
-            if churn_prob > 0.5:
+            if class_1_prob > 0.5:
                 st.warning("High risk of customer churn! Recommend retention strategies.")
             else:
                 st.success("Low risk of customer churn. Customer seems satisfied.")
                 
         except Exception as e:
             st.error(f"Error during prediction: {e}")
-            st.info("This might be due to a mismatch between the expected model input format and the preprocessed data. Try retraining the model or checking feature alignment.")
-
+            st.info("Debugging information: Please check feature encoding and model setup.")
+            import traceback
+            st.code(traceback.format_exc())
 def main():
     st.title("🚀 Customer Churn Prediction Dashboard")
 
