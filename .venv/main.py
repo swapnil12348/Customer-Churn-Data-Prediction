@@ -229,22 +229,7 @@ def individual_churn_prediction(model, X):
 
         # Predict churn probability
         churn_prob = model.predict_proba(input_data)
-        try:
-            # First, check if we have a proper 2D array
-            if len(churn_prob.shape) >= 2 and churn_prob.shape[1] == 2:
-                no_churn_prob, churn_prob = churn_prob[0]
-            else:
-                # Handle the case where structure is unexpected
-                churn_prob = churn_prob[0][0] if len(churn_prob.shape) >= 2 else churn_prob[0]
-                no_churn_prob = 1 - churn_prob
-        except Exception as e:
-            # As a fallback, just use a simple approach
-            st.warning(f"Warning: Unexpected prediction format. Using simplified calculation.")
-            # Get the raw prediction (0 or 1)
-            raw_pred = model.predict(input_data)[0]
-            churn_prob = float(raw_pred)
-            no_churn_prob = 1.0 - churn_prob
-
+        no_churn_prob, churn_prob = churn_prob[0]
 
         # Display results
         st.subheader("Prediction Results")
