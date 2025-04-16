@@ -130,14 +130,9 @@ def preprocess_data(df):
     # Prepare features and target
     X = df.drop('Churn', axis=1)
     y = df['Churn']
-    
-    # Verify that y contains two distinct classes
-    unique_classes = np.unique(y)
-    if len(unique_classes) != 2:
-        print(f"Warning: Target variable 'Churn' has {len(unique_classes)} classes instead of 2")
-        print(f"Unique classes: {unique_classes}")
 
     return X, y, df
+
 
 def train_model(X_train, y_train):
     """Train a Random Forest Classifier"""
@@ -232,35 +227,22 @@ def individual_churn_prediction(model, X):
         for col in input_data.columns:
             input_data[col] = pd.to_numeric(input_data[col], errors='coerce')
 
-        try:
-            # Get prediction
-            prediction = model.predict(input_data)[0]
-            
-            # Instead of using predict_proba which is causing issues,
-            # just use the direct prediction (0 or 1) and assign probabilities
-            if prediction == 1:
-                # Customer likely to churn
-                churn_prob = 0.9  # High probability of churning
-                no_churn_prob = 0.1
-            else:
-                # Customer likely to stay
-                churn_prob = 0.1  # Low probability of churning
-                no_churn_prob = 0.9
-                
-            # Display results
-            st.subheader("Prediction Results")
-            st.metric("Probability of Churning", f"{churn_prob * 100:.2f}%")
-            st.metric("Probability of Staying", f"{no_churn_prob * 100:.2f}%")
-            
-            # Interpret the results
-            if churn_prob > 0.5:
-                st.warning("High risk of customer churn! Recommend retention strategies.")
-            else:
-                st.success("Low risk of customer churn. Customer seems satisfied.")
-                
-        except Exception as e:
-            st.error(f"Prediction error: {str(e)}")
-            st.info("There was an issue with the prediction. Please check your model configuration.")
+        # Predict churn probability
+        churn_prob = model.predict_proba(input_data)
+        no_churn_prob, churn_prob = churn_prob[0]
+
+        # Display results
+        st.subheader("Prediction Results")
+        st.metric("Probability of Churning", f"{churn_prob * 100:.2f}%")
+        st.metric("Probability of Staying", f"{no_churn_prob * 100:.2f}%")
+
+        # Interpret the results
+        if churn_prob > 0.5:
+            st.warning("High risk of customer churn! Recommend retention strategies.")
+        else:
+            st.success("Low risk of customer churn. Customer seems satisfied.")
+
+
 def main():
     st.title("🚀 Customer Churn Prediction Dashboard")
 
