@@ -229,7 +229,16 @@ def individual_churn_prediction(model, X):
 
         # Predict churn probability
         churn_prob = model.predict_proba(input_data)
-        no_churn_prob, churn_prob = churn_prob[0]
+        
+        if churn_prob[0].shape[0] == 2:
+            no_churn_prob, churn_prob = churn_prob[0]
+        else:
+            # Handle the case where there's only one probability value
+            # This might indicate an issue with your model
+            st.error("The model returned unexpected probability values. This may indicate an issue with model training.")
+            st.write("Probability values:", churn_prob[0])
+            return
+        
 
         # Display results
         st.subheader("Prediction Results")
